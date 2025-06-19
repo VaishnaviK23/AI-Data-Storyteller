@@ -33,8 +33,8 @@
 1. **Clone the repository:**
 
     ```bash
-    git clone https://github.com/yourusername/ai-data-storyteller.git
-    cd ai-data-storyteller
+    git clone https://github.com/VaishnaviK23/AI-Data-Storyteller.git
+    cd AI-Data-Storyteller
     ```
 
 2. **Install dependencies:**
