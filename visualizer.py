@@ -105,8 +105,40 @@ def agent_node(state: GraphState):
 
 def summary_node(state: GraphState):
     df = pd.DataFrame(state["df"])
-    describe_prompt = f"Provide a natural language summary of this dataset:\n\n{df.describe(include='all').to_string()}\n\n"
-    summary = llm.invoke(describe_prompt)
+    
+    # Identify column types
+    numerical_cols = df.select_dtypes(include="number").columns.tolist()
+    categorical_cols = df.select_dtypes(include="object").columns.tolist()
+    datetime_cols = df.select_dtypes(include="datetime").columns.tolist()
+
+    summary_parts = []
+
+    summary_parts.append(f"The dataset contains {len(df)} rows and {len(df.columns)} columns.")
+
+    # Summarize categorical columns
+    for col in categorical_cols:
+        top_val = df[col].value_counts().idxmax()
+        unique_vals = df[col].nunique()
+        summary_parts.append(f"Column '{col}' has {unique_vals} unique values. Most frequent: '{top_val}'.")
+
+    # Summarize numerical columns
+    for col in numerical_cols:
+        col_min = df[col].min()
+        col_max = df[col].max()
+        col_mean = df[col].mean()
+        summary_parts.append(f"Column '{col}' - min: {col_min:.2f}, max: {col_max:.2f}, average: {col_mean:.2f}")
+
+    # Summarize datetime columns
+    for col in datetime_cols:
+        min_date = df[col].min()
+        max_date = df[col].max()
+        summary_parts.append(f"Column '{col}' ranges from {min_date} to {max_date}.")
+
+    # Construct final prompt
+    analysis_summary = "\n".join(summary_parts)
+    prompt = f"Generate a concise and readable paragraph summarizing the dataset based on this profile:\n\n{analysis_summary}"
+    summary = llm.invoke(prompt)
+
     return {"summary": summary.content, "df": state["df"]}
 
 def report_node(state: GraphState):
@@ -202,6 +234,10 @@ if uploaded_file:
         if "fig" in final_state:
             st.subheader("📈 Visualization")
             st.plotly_chart(final_state["fig"])
+
+        if final_state.get("clarification"):
+            st.subheader("💡 GPT-4 Suggestions")
+            st.markdown(final_state["clarification"])
 
         st.subheader("📝 Summary")
         st.markdown(final_state["summary"])
